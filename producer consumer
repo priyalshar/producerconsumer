@@ -1,0 +1,96 @@
+#include <pthread.h>
+#include <stdio.h>
+#include <semaphore.h>
+#include <sys/syscall.h>
+#include <stdlib.h>
+void *producer();
+void *consumer();
+typedef struct
+{
+int buff[20];
+sem_t full, empty;
+}shared;
+shared sh;
+int item;
+int in=0, out=0;
+sem_t mutex;
+int main()
+{
+pthread_t ptid1,ptid2,ctid;
+sem_init(&sh.empty, 0, 20);
+sem_init(&sh.full, 0, 0);
+sem_init(&mutex, 0, 1);
+pthread_create(&ptid1, NULL, producer, NULL);
+pthread_create(&ptid2, NULL, producer, NULL);
+pthread_create(&ctid, NULL, consumer, NULL);
+pthread_join(ptid1, NULL);
+pthread_join(ptid2, NULL);
+pthread_join(ctid, NULL);
+return 0;
+}
+void *producer()
+{
+//int ptid;
+while(1)
+
+{
+item = in;
+sem_wait(&sh.empty);
+sem_wait(&mutex);
+sh.buff[in++]=item;
+printf("\nProducer thread id and producer item : %ld %d \n",
+
+pthread_self(),item);
+sem_post(&mutex);
+sem_post(&sh.full);
+sleep(2);
+}
+}
+void *consumer()
+{
+//int ctid;
+while(1)
+{
+while(out<=in)
+{
+sem_wait(&sh.full);
+sem_wait(&mutex);
+item=sh.buff[out++];
+printf("\nConsumer thread id and consumer item : %ld %d \n"
+
+, pthread_self(),item);
+sem_post(&mutex);
+sem_post(&sh.empty);
+sleep(2);
+}
+}
+}
+/*./executable
+Producer thread id and producer item : 140133908064000 0
+Producer thread id and producer item : 140133899671296 1
+Consumer thread id and consumer item : 140133777012480 0
+Producer thread id and producer item : 140133908064000 2
+Producer thread id and producer item : 140133899671296 3
+
+Consumer thread id and consumer item : 140133777012480 1
+Producer thread id and producer item : 140133908064000 4
+Producer thread id and producer item : 140133899671296 5
+Consumer thread id and consumer item : 140133777012480 2
+Producer thread id and producer item : 140133908064000 6
+Producer thread id and producer item : 140133899671296 7
+Consumer thread id and consumer item : 140133777012480 3
+Producer thread id and producer item : 140133908064000 8
+Producer thread id and producer item : 140133899671296 9
+Consumer thread id and consumer item : 140133777012480 4
+Producer thread id and producer item : 140133908064000 10
+Producer thread id and producer item : 140133899671296 11
+Consumer thread id and consumer item : 140133777012480 5
+Producer thread id and producer item : 140133908064000 12
+Consumer thread id and consumer item : 140133777012480 6
+Producer thread id and producer item : 140133899671296 6
+Producer thread id and producer item : 140133908064000 14
+Producer thread id and producer item : 140133899671296 15
+Consumer thread id and consumer item : 140133777012480 7
+Producer thread id and producer item : 140133908064000 16
+Producer thread id and producer item : 140133899671296 17
+Consumer thread id and consumer item : 140133777012480 8
